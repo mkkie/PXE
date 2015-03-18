@@ -1,0 +1,177 @@
+#!/bin/bash
+
+ethercard=br0
+
+usage_exit(){
+    echo "May I help you ?"
+    echo "$0 dhcp|tftp"
+}	 	 
+
+auto_install(){
+    printf "Do you want to auto install (yes/no)? "
+    while true; do
+	read yn
+	case $yn in
+	    [Yy] | yes)
+		auto_ins=yes
+		return 0
+		;;
+	    [Nn] | no)
+		auto_ins=no
+		return 1
+		;;
+	    *)
+		printf "Please type 'yes' or 'no': "
+		;;
+	esac
+    done
+}
+
+dhcp_install(){
+    echo "sudo aptitude update"
+    echo "sudo aptitude install isc-dhcp-server"
+    if [ $auto_ins == "yes" ]
+    then
+	#sudo aptitude update
+	#sudo aptitude install isc-dhcp-server
+	dhcp_conf_auto
+    else
+	dhcp_conf
+    fi
+}
+
+chk_read(){
+    read tmp
+    if [ -z $tmp ]
+    then echo $1
+    else
+	echo $tmp
+    fi
+}
+
+dhcp_conf_auto(){
+    get_ip
+    echo "Subnet: (default: $subnet)"
+    printf "=> "
+    subnet=$(chk_read $subnet)
+    echo "Netmask: (default: $netmask)"
+    printf "=> "
+    netmask=$(chk_read $netmask)
+    echo "DHCP IP range: (default: $range_initial ~ $range_end)"
+    printf "range begin ip => "
+    range_initial=$(chk_read $range_initial)
+    printf "range end ip => "
+    range_end=$(chk_read $range_end)
+    echo "Gateway: (default: $gateway)"
+    printf "=> "
+    gateway=$(chk_read $gateway)
+    echo "DNS: (default: $dns)"
+    printf "=> "
+    dns=$(chk_read $dns)
+    echo "Tftp Server IP: (default: $tftp_ip)"
+    printf "=> "
+    tftp_ip=$(chk_read $tftp_ip)
+    echo "subnet $subnet netmask $netmask {" >tmp_dhcpd.conf
+    printf "\trange $range_initial $range_end;\n" >>tmp_dhcpd.conf
+    printf "\toption routers $gateway;\n" >>tmp_dhcpd.conf
+    printf "\toption domain-name-servers $dns;\n" >>tmp_dhcpd.conf
+    printf "\tfilename "pxelinux.0";\n" >>tmp_dhcpd.conf
+    printf "\tnext-server $tftp_ip;\n" >>tmp_dhcpd.conf
+    echo "}" >>tmp_dhcpd.conf
+    check_paste
+}
+
+check_paste(){
+    cat tmp_dhcpd.conf
+    printf "correct (yes/no)? "
+    while true; do
+	read yn
+	case $yn in
+	    [Yy] | yes)
+		auto_chk=yes
+		break
+		;;
+	    [Nn] | no)
+		auto_chk=no
+		break
+		;;
+	    *)
+		printf "Please type 'yes' or 'no': "
+		;;
+	esac
+    done
+    
+    if [ $auto_chk == "yes" ]
+    then
+	if [ -f /etc/dhcp/dhcpd.conf ]
+	then
+	   echo "auto paste content to /etc/dhcp/dhcpd.conf"
+	   #cat tmp_dhcpd.conf | sudo tee -a /etc/dhcp/dhcpd.conf
+	else
+	    echo "I can't find /etc/dhcp/dhcpd.conf"
+	    echo "please check dhcp software"
+	fi
+    else
+	echo "run again"
+    fi
+    rm tmp_dhcpd.conf
+}
+
+get_ip(){
+    tftp_ip=$(/sbin/ifconfig $ethercard | grep "inet addr:" | sed 's/^.*addr://g' | sed 's/Bcast.*$//g')
+    IFS=. read i1 i2 i3 i4 <<< "$tftp_ip"
+    gateway="$i1.$i2.$i3.1"
+    subnet="$i1.$i2.$i3.0"
+    range_initial="$i1.$i2.$i3.10"
+    range_end="$i1.$i2.$i3.100"
+    netmask=$(/sbin/ifconfig $ethercard | grep "Mask" | sed 's/^.*Mask://g')
+    dns=8.8.8.8
+}
+
+dhcp_conf(){
+    get_ip
+    echo ""
+    echo "Sample:"
+    echo "$ cat /etc/dhcp/dhcpd.conf"
+    echo "subnet $subnet netmask $netmask {"
+    printf "\trange $range_initial $range_end;\n"
+    printf "\toption routers $gateway;\n"
+    printf "\toption domain-name-servers $dns;\n"
+    printf "\tfilename "pxelinux.0";\n"
+    printf "\tnext-server $tftp_ip;\n"
+    echo "}"
+}
+
+tftp_install(){
+    echo "sudo aptitude update"
+    echo "sudo aptitude install tftp-hpa"
+    tftp_conf
+}
+
+tftp_conf(){
+    echo ""
+    echo "$ cat /etc/default/tftpd-hpa"
+    echo "# /etc/default/tftpd-hpa"
+    echo "TFTP_USERNAME=\"tftp\""
+    echo "TFTP_DIRECTORY=\"`pwd`\""
+    echo "TFTP_ADDRESS=\"0.0.0.0:69\""
+    echo "TFTP_OPTIONS=\"--secure\""
+}
+
+
+case $1 in
+    dhcp)
+        auto_install
+        dhcp_install
+	;;
+    tftp)
+        auto_install
+        tftp_install
+	;;
+    *)
+        usage_exit
+	haha="fuckyou"
+	haha=$(chk_read $haha)
+	echo $haha
+	;;
+esac
