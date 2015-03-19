@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ethercard=br0
+ethercard=eth0
 
 usage_exit(){
     echo "May I help you ?"
