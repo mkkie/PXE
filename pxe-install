@@ -75,6 +75,7 @@ dhcp_conf_auto(){
     printf "\trange $range_initial $range_end;\n" >>tmp_dhcpd.conf
     printf "\toption routers $gateway;\n" >>tmp_dhcpd.conf
     printf "\toption domain-name-servers $dns;\n" >>tmp_dhcpd.conf
+    printf "\tfilename \"pxelinux.0\";\n" >>tmp_dhcpd.conf
     printf "\tnext-server $tftp_ip;\n" >>tmp_dhcpd.conf
     echo "}" >>tmp_dhcpd.conf
     check_dhcp_paste
@@ -135,6 +136,7 @@ dhcp_conf(){
     printf "\trange $range_initial $range_end;\n"
     printf "\toption routers $gateway;\n"
     printf "\toption domain-name-servers $dns;\n"
+    printf "\tfilename \"pxelinux.0\";\n"
     printf "\tnext-server $tftp_ip;\n"
     echo "}"
 }
