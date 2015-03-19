@@ -1,0 +1,14 @@
+#!/bin/bash
+
+
+if [ ! -f xxx ]
+then
+    echo "You should prepare \"pxelinux.0\" file in tftp server dir."
+    echo ""
+    echo "wget http://ftp.nl.debian.org/debian/dists/testing/main/installer-amd64/current/images/netboot/netboot.tar.gz"
+    echo "tar -zxvf netboot.tar.gz"
+fi
+
+echo ""
+echo "sudo service isc-dhcp-server start"
+echo "sudo service tftpd-hpa start"

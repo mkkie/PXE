@@ -32,8 +32,8 @@ dhcp_install(){
     echo "sudo aptitude install isc-dhcp-server"
     if [ $auto_ins == "yes" ]
     then
-	#sudo aptitude update
-	#sudo aptitude install isc-dhcp-server
+	sudo aptitude update
+	sudo aptitude install isc-dhcp-server
 	dhcp_conf_auto
     else
 	dhcp_conf
@@ -75,13 +75,12 @@ dhcp_conf_auto(){
     printf "\trange $range_initial $range_end;\n" >>tmp_dhcpd.conf
     printf "\toption routers $gateway;\n" >>tmp_dhcpd.conf
     printf "\toption domain-name-servers $dns;\n" >>tmp_dhcpd.conf
-    printf "\tfilename "pxelinux.0";\n" >>tmp_dhcpd.conf
     printf "\tnext-server $tftp_ip;\n" >>tmp_dhcpd.conf
     echo "}" >>tmp_dhcpd.conf
-    check_paste
+    check_dhcp_paste
 }
 
-check_paste(){
+check_dhcp_paste(){
     cat tmp_dhcpd.conf
     printf "correct (yes/no)? "
     while true; do
@@ -100,19 +99,18 @@ check_paste(){
 		;;
 	esac
     done
-    
     if [ $auto_chk == "yes" ]
     then
 	if [ -f /etc/dhcp/dhcpd.conf ]
 	then
 	   echo "auto paste content to /etc/dhcp/dhcpd.conf"
-	   #cat tmp_dhcpd.conf | sudo tee -a /etc/dhcp/dhcpd.conf
+	   cat tmp_dhcpd.conf | sudo tee -a /etc/dhcp/dhcpd.conf
 	else
 	    echo "I can't find /etc/dhcp/dhcpd.conf"
 	    echo "please check dhcp software"
 	fi
     else
-	echo "run again"
+	echo "please run it again"
     fi
     rm tmp_dhcpd.conf
 }
@@ -137,21 +135,81 @@ dhcp_conf(){
     printf "\trange $range_initial $range_end;\n"
     printf "\toption routers $gateway;\n"
     printf "\toption domain-name-servers $dns;\n"
-    printf "\tfilename "pxelinux.0";\n"
     printf "\tnext-server $tftp_ip;\n"
     echo "}"
 }
 
 tftp_install(){
     echo "sudo aptitude update"
-    echo "sudo aptitude install tftp-hpa"
-    tftp_conf
+    echo "sudo aptitude install tftpd-hpa"
+    if [ $auto_ins == "yes" ]
+    then
+	sudo aptitude update
+	sudo aptitude install tftpd-hpa
+	tftp_conf_auto
+    else
+	tftp_conf
+    fi
+}
+
+tftp_conf_auto(){
+    tftp_address="0.0.0.0"
+    tftp_dir=`pwd`
+    echo "TFTP_ADDRESS: (default: $tftp_address)"
+    printf "=> "
+    tftp_address=$(chk_read $tftp_address)
+    echo "TFTP_DIRECTORY: (default: $tftp_dir)"
+    printf "=> "
+    tftp_dir=$(chk_read $tftp_dir)
+    echo "# /etc/default/tftpd-hpa" >tmp_tftpd-hpa
+    echo "" >>tmp_tftpd-hpa
+    echo "TFTP_USERNAME=\"tftp\"" >>tmp_tftpd-hpa
+    echo "TFTP_DIRECTORY=\"$tftp_dir\"" >>tmp_tftpd-hpa
+    echo "TFTP_ADDRESS=\"$tftp_address:69\"" >>tmp_tftpd-hpa
+    echo "TFTP_OPTIONS=\"--secure\"" >>tmp_tftpd-hpa
+    check_tftp_paste
+}
+
+check_tftp_paste(){
+    cat tmp_tftpd-hpa
+    printf "correct (yes/no)? "
+    while true; do
+	read yn
+	case $yn in
+	    [Yy] | yes)
+		auto_chk=yes
+		break
+		;;
+	    [Nn] | no)
+		auto_chk=no
+		break
+		;;
+	    *)
+		printf "Please type 'yes' or 'no': "
+		;;
+	esac
+    done
+    if [ $auto_chk == "yes" ]
+    then
+	if [ -f /etc/default/tftpd-hpa ]
+	then
+	   echo "auto paste content to /etc/default/tftpd-hpa"
+	   cat tmp_tftpd-hpa | sudo tee /etc/default/tftpd-hpa
+	else
+	    echo "I can't find /etc/default/tftpd-hpa"
+	    echo "please check dhcp software"
+	fi
+    else
+	echo "please run it again"
+    fi
+    rm tmp_tftpd-hpa
 }
 
 tftp_conf(){
     echo ""
     echo "$ cat /etc/default/tftpd-hpa"
     echo "# /etc/default/tftpd-hpa"
+    echo ""
     echo "TFTP_USERNAME=\"tftp\""
     echo "TFTP_DIRECTORY=\"`pwd`\""
     echo "TFTP_ADDRESS=\"0.0.0.0:69\""
@@ -170,8 +228,5 @@ case $1 in
 	;;
     *)
         usage_exit
-	haha="fuckyou"
-	haha=$(chk_read $haha)
-	echo $haha
 	;;
 esac
