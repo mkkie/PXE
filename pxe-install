@@ -1,10 +1,10 @@
 #!/bin/bash
 
-ethercard=eth0
+: ${ethercard:=eth0}
 
 usage_exit(){
-    echo "May I help you ?"
-    echo "$0 dhcp|tftp"
+    echo "Choose one please."
+    echo "$0 dhcp | tftp"
 }	 	 
 
 auto_install(){
@@ -28,12 +28,12 @@ auto_install(){
 }
 
 dhcp_install(){
-    echo "sudo aptitude update"
-    echo "sudo aptitude install isc-dhcp-server"
+    echo "sudo apt-get update"
+    echo "sudo apt-get install isc-dhcp-server"
     if [ $auto_ins == "yes" ]
     then
-	sudo aptitude update
-	sudo aptitude install isc-dhcp-server
+	sudo apt-get update
+	sudo apt-get install -y isc-dhcp-server
 	dhcp_conf_auto
     else
 	dhcp_conf
@@ -142,12 +142,12 @@ dhcp_conf(){
 }
 
 tftp_install(){
-    echo "sudo aptitude update"
-    echo "sudo aptitude install tftpd-hpa"
+    echo "sudo apt-get update"
+    echo "sudo apt-get install tftpd-hpa"
     if [ $auto_ins == "yes" ]
     then
-	sudo aptitude update
-	sudo aptitude install tftpd-hpa
+	sudo apt-get update
+	sudo apt-get install -y tftpd-hpa
 	tftp_conf_auto
     else
 	tftp_conf
